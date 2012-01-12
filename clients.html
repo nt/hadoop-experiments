@@ -1,0 +1,66 @@
+<html>
+<head>
+	<script src="./d3/d3.js" type="text/javascript" charset="utf-8"></script>
+	<script src="./d3/d3.csv.min.js" type="text/javascript" charset="utf-8"></script>
+	<script src="./d3/d3.chart.js" type="text/javascript" charset="utf-8"></script>
+	<script src="./d3/d3.layout.js" type="text/javascript" charset="utf-8"></script>
+	<style type="text/css" media="screen">
+  circle {
+    stroke: #fff;
+    stroke-width: 1.5px;
+  }
+
+  text {
+    font: 10px sans-serif;
+  }
+	</style>
+</head>
+<body onload="javascript:a()">
+	<div id="chart">
+	</div>
+	<script type="text/javascript" charset="utf-8">
+	var a = function() {
+	   var w = 500,
+	   h = 500,
+     format = d3.format(",d"),
+     fill = d3.scale.category20c();
+     
+     var scale = d3.scale.sqrt()
+                    .range([1, 90])
+                    .domain([1,30000]);
+     
+     var b_scale = d3.scale.linear();
+     
+     var bubble = d3.layout.pack()
+        .sort(function(x,y){ return y.count - x.count })
+        .size([w+200, h+200])
+        .value(function(d){return scale(d.count)});
+        
+      var vis = d3.select("#chart").append("svg")
+        .attr("width", w)
+        .attr("height", h)
+        .attr("class", "bubble");
+        
+	    d3.csv("./clients-100k.csv", function(clients){
+    	  var node = vis.selectAll("g.node")
+               .data(bubble.nodes({children: clients}))
+               .enter().append("g")
+                .attr("class", "node")
+                .attr("transform", function(d) { return "translate(" + (d.x-100) + "," + (d.y-100) + ")"; });
+        node.append("title")
+            .text(function(d) { return d.name + ": " + format(d.count); })
+        node.append("circle")
+          .attr("r", function(d) { return scale(d.count); })
+          .style("fill", function(d) { return fill(d.name); })
+          .on('click', function(d){window.open(d.url)});
+          
+        node.append("text")
+          .attr("text-anchor", "middle")
+          .attr("dy", ".3em")
+          .text(function(d) { return (d.name ? d.name : "").substring(0, scale(d.count) / 3); })
+          .on('click', function(d){window.open(d.url)});
+    	})
+	}
+	</script>
+</body>	
+</html>
