@@ -29,8 +29,6 @@
                     .range([1, 90])
                     .domain([1,30000]);
      
-     var b_scale = d3.scale.linear();
-     
      var bubble = d3.layout.pack()
         .sort(function(x,y){ return y.count - x.count })
         .size([w+200, h+200])

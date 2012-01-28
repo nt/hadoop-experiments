@@ -6,9 +6,11 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.URI;
 
+import org.apache.commons.io.IOUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
@@ -22,7 +24,7 @@ public class TwitterFirehose {
 	
 	DefaultHttpClient httpclient = new DefaultHttpClient();
 	
-	BufferedReader getBufferedReader(String user, String pass) throws IllegalStateException, IOException {
+	InputStream getInputStream(String user, String pass) throws IllegalStateException, IOException {
 		httpclient.getCredentialsProvider().setCredentials(
                 new AuthScope("stream.twitter.com", 443),
                 new UsernamePasswordCredentials(user, pass));
@@ -38,8 +40,7 @@ public class TwitterFirehose {
         if (entity != null) {
             System.out.println("Response content length: " + entity.getContentLength());
         }
-        InputStream in = entity.getContent();
-        return new BufferedReader(new InputStreamReader(in));
+        return entity.getContent();
 	}
 	
 	void close(){
@@ -49,14 +50,27 @@ public class TwitterFirehose {
 	public static void main(String[] args) throws ClientProtocolException, IOException {
 		int N = Integer.parseInt(args[0]);
 		TwitterFirehose tf = new TwitterFirehose();
-		BufferedReader br = tf.getBufferedReader(args[1], args[2]);
 		String dst = args[3];
 		Configuration conf = new Configuration();
 		FileSystem fs = FileSystem.get(URI.create(dst), conf);
 		
 		OutputStream out = fs.create(new Path(dst));
+		InputStream is = tf.getInputStream(args[1], args[2]);
 		
-
+		for(int i=0;i<N/2;i++) {
+			IOUtil.copy(is, out, 2000000);
+        	//if((i % (N/50)) == 0)
+        		System.out.println(i+"/"+(N*2));
+		}
+		
+		IOUtil.shutdownStream(is);
+		IOUtil.shutdownStream(out);
+		
+		out.close();
+		tf.close();
+		
+		/*// In this version N represents the number of lines
+		BufferedReader br = new BufferedReader(new InputStreamReader(tf.getInputStream(args[1], args[2])));
             for(int i=0;i<N;i++){
             	String line = br.readLine();
             	if(line==null)
@@ -68,7 +82,7 @@ public class TwitterFirehose {
             }
             out.close();
             tf.close();
-
+		*/
 	}
 	
 }
